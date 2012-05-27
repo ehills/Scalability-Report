@@ -1,5 +1,12 @@
 \begin{thebibliography}{1}
 
+\bibitem{Amdahl}
+G.~M. Amdahl.
+\newblock Validity of the single processor approach to achieving large scale
+  computing capabilities.
+\newblock In {\em Proceedings of the April 18-20, 1967, spring joint computer
+  conference}, pages 483--485. ACM, 1967.
+
 \bibitem{sloppy-counters}
 S.~Boyd-Wickizer, A.~T. Clements, Y.~Mao, A.~Pesterev, M.~F. Kaashoek,
   R.~Morris, and N.~Zeldovich.
@@ -8,12 +15,18 @@ S.~Boyd-Wickizer, A.~T. Clements, Y.~Mao, A.~Pesterev, M.~F. Kaashoek,
   {S}ystems {D}esign and {I}mplementation ({OSDI} '10)}, Vancouver, Canada,
   October 2010.
 
-\bibitem{RCU}
+\bibitem{Bonsai}
 A.~T. Clements, F.~Kaashoek, and N.~Zeldovich.
 \newblock Scalable address spaces using rcu balanced trees.
 \newblock In {\em Proceedings of the 17th International Conference on
   Architectural Support for Programming Languages and Operating Systems
   ({ASPLOS})}, London, UK, March 2012.
+
+\bibitem{RCU}
+P.~E. Mckenney, J.~Appavoo, A.~Kleen, O.~Krieger, O.~Krieger, R.~Russell,
+  D.~Sarma, and M.~Soni.
+\newblock Read-copy update.
+\newblock In {\em In Ottawa Linux Symposium}, pages 338--367, 2001.
 
 \bibitem{fos}
 D.~Wentzlaff and A.~Agarwal.

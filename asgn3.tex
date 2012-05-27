@@ -53,21 +53,57 @@ Multi-core CPUs have been around for over a decade now and with this plenty of t
 
 Without changing drastically the way we think about modern operating systems we have no choice but to examine areas of the kernel we have now and find ways to limit the amount, what, where and when we share resources among each thread or core. By reducing the amount of sharing we have to do and by keeping everything as modular as we can, we can try and curb the amount of differing cores that must access the same thing. By doing this, we can improve scalability drastically. 
 
+\subsection{Sloppy Counters}
+\emph{Sloppy counters} proposed by Byord-Wickizer \emph{et al.} is a way of doing \emph{lazy updates}. The linux kernel uses shared counters for a range of tasks such managing resources and garbage collection, this a scalability issue if many cores are accessing an updating these counters. \emph{Sloppy counters} aims to remove this bottleneck by having each core have its own counter and update that instead of the shared counter. It does this in the hopes that it can keep spare references that new threads can use. It will have to reconcile with the central counter if the local count grows above a threshold value or when deciding whether an object should be deallocated, thus it is best used when objects are rarely deallocated.  
 
+Sloppy counters has the added benefit of being backwards compatible with other kernel counters meaning that not all sections of the kernel need to be changed by only that which imposes scalability issues. However one down side is that that they use space proportional to the number of cores present.
+
+By adding sloppy counters to keep track of \emph{dentrys}, \emph{vfsmounts}, \emph{dst\_entrys} and to keep track of memory allocated by TCP and UDP network protocols. 
+
+One downfall of this paper \cite{sloppy-counters} is that it does not give specific quantifiable results when using just sloppy counters, this is because the paper benchmarks a range of applications with more than one improvement made to it.
+
+\subsection{Read-Copy-Update}
+Read-Copy-Update provides a solution to many scalability issues, an important one being contention in the address space design \cite{Bonsai}. Clements \emph{et al.} re-designed the address space to use a balanced binary tree, \emph{Bonsai}, to ensure non-destructive updates of the table.
+
+I will now briefly describe RCU and how it helps with scalability in a multi-core environment.
+
+The main idea of RCU is that when a reader process or thread comes to read a particular block thats inside an RCU synchronization block it first copies the data that is held within the data-structure and then makes a copy of the original pointer itself. Next, it simply carries on and if need be it updates its copy. It then updates the global pointer and waits a certain grace period. It has this grace period so that all other readers which are reading the original data-structure have time to finish. 
+
+Once the code enters a 'quiescent state' (an area in the code in which you can guarantee that all previous operations have completed) then the grace period ends and the resource is reclaimed. There are several things that defines what a 'quiescent state' is, some methods simply use a counter and increment every time an operation is begun and decrement it when an operation is finished, then when the counter reaches zero it has completed everything before it. For non-preemptive systems if a context switch is performed then that could be classed as a quiescent state also. In some systems if an interrupt is called or a trap has been executed then these are also accepted.
+
+RCU in its standard implementation is mainly for read-mostly data structures such as a routing table which is more often read than updated. One major advantage to RCU is its low-cost and low-overhead compared to normal synchronization techniques (such as a spinlock) which is relatively quite expensive and multi-processor unfriendly.
+
+RCU is described as a 'two-phase' locking mechanism, the first phase is to carry out enough of each up-date for new operations to see the new state, but still let old operations carry on and the second phase is to finish the update once the grace period has finished.
+
+RCU is a severe advantage over traditional locking mechanisms such as spinlocks as they are severely limited by worst-case memory latency. This is because once a traditional lock has been obtained it must write to the locked data-structure, this means that it must hit memory which is slow compared to cpu or cache.
+
+There is a limitation however due to the \emph{wait\_for\_rcu()} function not working in a pre-emptible kernel unless pre-emption is specifically disabled for that section.
+When implementing FD management with the use of RCU, Mckenney \emph{et al.} \cite{RCU} found that the kernel exhibited over 30\% more throughput for 4 cores and even with a uniprocessor there was a slight increase in performance (0.65\%).
+
+Multi-core oriented OSs such as K42 use RCU pervasively as an existence lock. It is commonly used in Linux kernels since 2.5.
+
+Read-Copy-Update locking technique allows multiple threads and cores access the same data-structures without having to attain a lock which would limit scalability. Now knowing about RCU we can explain how this was used to help increase scalability in a concurrent address space.
 
 \section{Future OS Solutions}
 
-fos blah
-
-K24? blah
-
 Other future operating systems like that
 
-\section{New ideas}
+\subsection{Factored Operating-System}
+fos blah
+
+\subsection{K42}
+K42 blah
+
+\section{New Proposal}
+
+\subsection{Basic Idea}
+My new idea to help improve scalability is to take a similar approach to that of \emph{fos} \cite{fos} and completely rethink the idea and design of the kernel. 
+
+\subsection{Implementation}
+
+To implement the design I have discussed above I first though to blah blah blah
 
 \section{Conclusion}
-The conclusion goes here.
-The conclusion goes here.
 The conclusion goes here.
 The conclusion goes here.
 The conclusion goes here.
