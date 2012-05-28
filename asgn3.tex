@@ -18,6 +18,8 @@ Multi-core scalability is in the fore-front of every programmers mind when progr
 \section{Introduction}
 \IEEEPARstart{S}{calability} is an important issue in todays modern operating system era. Current operating systems (OSs) are being retro-fitted with techniques to increase their scalability. On a whole things are improving, and this can be seen in the versions of the Linux kernel which are being released. However, some researchers see this is a stop-gap rather than a solution. This is due to a number of factors which cannot simply be fixed to be more scalable due to their semantics. Some scalability issues include:
 
+\vspace{2mm}
+
 \begin{itemize}
 \item Global or coarse-grained locks
 \item TLBs
@@ -26,6 +28,8 @@ Multi-core scalability is in the fore-front of every programmers mind when progr
 \item Cache misses
 \item Unnecessary Resource Sharing
 \end{itemize}
+
+\vspace{5mm}
 
 Coarse-grained locks are a major scalability issue in multi-core or even highly threaded systems. A coarse-grained lock is one that locks a larger area than it possibly needs to to accomplish a job that needs to run without interference or the possibility of a race condition. Original linux kernels had whole kernel global locks but these were quickly removed with smaller finer-grained locks, however these locks are still not fine enough in a multi-core environment.
 
@@ -82,14 +86,51 @@ When implementing FD management with the use of RCU, Mckenney \emph{et al.} \cit
 
 Multi-core oriented OSs such as K42 use RCU pervasively as an existence lock. It is commonly used in Linux kernels since 2.5.
 
-Read-Copy-Update locking technique allows multiple threads and cores access the same data-structures without having to attain a lock which would limit scalability. Now knowing about RCU we can explain how this was used to help increase scalability in a concurrent address space.
+Read-Copy-Update locking technique allows multiple threads and cores to access the same data-structures without having to attain a lock which would limit scalability. Now knowing about RCU we can explain how this was used to help increase scalability in a concurrent address space.
+
+By applying RCU to a balanced tree \cite{Bonsai}, \emph{Bonsai} allows us to perform read operations in parallel with writes and avoid cache coherence traffic caused by read locks. \emph{Bonsai} avoids the race conditions of keeping the red-black tree balanced by its design.
+
+By implementing \emph{Bonsai} into the linux kernel, applications such as \emph{Metis} and \emph{Dedup} can achieve near-perfect speed-up to 80 cores and the results of Clements \emph{et al.} showed that the scalability improvement was likely to keep on being beneficial with even more cores.
 
 \section{Future OS Solutions}
 
-Other future operating systems like that
+Techniques like the ones I have described above can almost be seen as 'stop-gaps' to the scalability issues we face in modern operating systems. These are becoming more and more effective as we devise new techniques for increasing scalability, however there are some that believe a total rethink and redesign of operating systems needs to be done. Below I will talk about a couple of these.
 
 \subsection{Factored Operating-System}
-fos blah
+
+\emph{fos} or Factored Operating System \cite{fos}, is an operating system that has been designed with scalability at the forefront of the developers mind. Fos aims to be able to support future massively multi-core chips (1000+ cores) that are likely to be around in the next decade or so. It has done away with contemporary modern operating systems such as Linux and has instead been rethought and redesigned to work a lot like Internet servers do today.
+
+Fos takes its main fundamental idea from common Internet servers that are used everyday for the web. These servers are highly scalable and can deal with millions of users at a time. In a nutshell fos has a few separate and important ideas:
+
+\vspace{2 mm}
+
+\begin{itemize}
+\item Kernel and Application code execute on separate cores
+\item Each core performs a set of separate services
+\item Main communication between cores is via message passing
+\item Sets of services and applications can be broken up into multiple \emph{fleets}
+\item Timesharing system replaced with spatial sharing
+\end{itemize}
+
+\vspace{5 mm}
+
+By designing fos with the above view we instantly avoid the need for a majority of locks as well as avoided having the application and kernel interfere with each other. Below are just some of the benefits offered such as:
+
+\vspace{2 mm}
+
+\begin{itemize}
+\item Inherently avoids contention between application and kernel
+\item Only one thread for each core avoids locks
+\item Quicker access to servives and fully parellised as tasks are spatially-shared not time-shared
+\item Avoids expensive context switches
+
+\vspace{5mm}
+
+The system service servers execute on top of a thin microkernel inspired by designs such as Mach \cite{Mach}, however there are a few differencnes such as distribution and parallelizing within a single system service server and having a spatially aware placement engine/scheduler. The lowest level of software management comes from the microkernel.
+
+Fos as you can see above is a complicated and new idea which aims to make scalability with 1000+ cores on a single chip possible
+
+\end{itemize}
 
 \subsection{K42}
 K42 blah
