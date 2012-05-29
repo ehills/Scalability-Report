@@ -171,12 +171,13 @@ The mailbox would act like a priority-queue (depending on the device if priority
 
 If a message which was to come along and want to read something from disk, it would first check the mailbox for writing to see if it was in the queue waiting to be written, if so it would simply grab that message and return that instead of accessing the disk.
 
-TALK ABOUT HOW IT COSTS MORE AS AN EXTRA COMMUNICATION IS NEEDED. ABOUT 10-50 cycles. STILL LESS THAN RAM LOL LOL LOL.
+The cost as previously mentioned for inter-core communication can be about 10-50 cycles, by adding these extra layers of indirection we are increasing the latency, however as has been said also this is still faster than the time it takes to access RAM. 
 
+For devices such as RAM which can take up a large 'space' and have large amounts of access we can dedicate one core to a range of addresses. We could say divide the full range of addresses and have one core for each quarter of the addresses. This is obviously an over simplification of how access to RAM works but the main principle still applies.
 
-TALK ABOUT DIVIDING RAM
+Having all these cores accessing different devices could severely limit the computational power of the system depending on how many cores there are in total. This is why I propose it should be possible for the cores which are acting as interfaces to be able to sleep and be used as other services or applications if not needed. The idea is that the core would relinquish (or at least suspend) control of the device and start executing something else. It would however stay in the name server so that when other cores wish to access the device they would still send messages its way and then that core would resume control of the device and carry on. Depending on the device, if it was to become inactive for a certain period of time, it could go to sleep (and start processing something useful). 
 
-TALK ABOUT DISABLING CORES AND PERHAPS THEM WAKE UP AND SLEEP AND HAVE GRACE TIMES ETC.
+TALK ABOUT LOCALITY. IE CLOSEST CORE TO I/O SHOULD BE THE ONE
 
 POSSIBLY GLOSS OVER PRIORITIES A BIT MORE / BETTER
 
