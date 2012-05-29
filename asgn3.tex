@@ -43,7 +43,7 @@ Having one core read what another core just wrote imposes a wide range of cache 
 
 Unnecessary resource sharing often occurs as side effects of bad programming or lack of thinking about scalability. Some resources simply do not need to be shared and we will see examples of this later.
 
-Throwing more cores or processors at a problem may not be the ultimate solution however, as Amdahls Law \cite{Amdahl} shows, we are limited by the sections which must be run in serial, if a program spends 1 hour out of 20 (95\%) executing serial code then Amdahls Law shows that we can only speed up computation by 20x. This is why serial parts must be rethought and redesigned to be parallelised.
+Throwing more cores or processors at a problem may not be the ultimate solution however, as Amdahls Law \cite{Amdahl} shows, we are limited by the sections which must be run in serial, if a program spends 1 hour out of 20 (95\%) executing serial code then Amdahls Law shows that we can only speed up computation by 20x. This is why serial parts must be rethought and redesigned to be parallelized.
 
 In this paper I will talk about previous papers and the techniques which have helped overcome these problems such as \emph{sloppy counters} \cite{sloppy-counters}, use of \emph{Read-Copy-Update} \cite{RCU} techniques and OSs which have done a full re-think of the kernel design with scalability in mind such as \emph{fos} \cite{fos}.
 
@@ -58,7 +58,7 @@ Multi-core CPUs have been around for over a decade now and with this plenty of t
 Without changing drastically the way we think about modern operating systems we have no choice but to examine areas of the kernel we have now and find ways to limit the amount, what, where and when we share resources among each thread or core. By reducing the amount of sharing we have to do and by keeping everything as modular as we can, we can try and curb the amount of differing cores that must access the same thing. By doing this, we can improve scalability drastically. 
 
 \subsection{Sloppy Counters}
-\emph{Sloppy counters} proposed by Byord-Wickizer \emph{et al.} is a way of doing \emph{lazy updates}. The linux kernel uses shared counters for a range of tasks such managing resources and garbage collection, this a scalability issue if many cores are accessing an updating these counters. \emph{Sloppy counters} aims to remove this bottleneck by having each core have its own counter and update that instead of the shared counter. It does this in the hopes that it can keep spare references that new threads can use. It will have to reconcile with the central counter if the local count grows above a threshold value or when deciding whether an object should be deallocated, thus it is best used when objects are rarely deallocated.  
+\emph{Sloppy counters} proposed by Boyd-Wickizer \emph{et al.} is a way of doing \emph{lazy updates}. The linux kernel uses shared counters for a range of tasks such managing resources and garbage collection, this a scalability issue if many cores are accessing an updating these counters. \emph{Sloppy counters} aims to remove this bottleneck by having each core have its own counter and update that instead of the shared counter. It does this in the hopes that it can keep spare references that new threads can use. It will have to reconcile with the central counter if the local count grows above a threshold value or when deciding whether an object should be deallocated, thus it is best used when objects are rarely deallocated.  
 
 Sloppy counters has the added benefit of being backwards compatible with other kernel counters meaning that not all sections of the kernel need to be changed by only that which imposes scalability issues. However one down side is that that they use space proportional to the number of cores present.
 
@@ -81,10 +81,10 @@ RCU is described as a 'two-phase' locking mechanism, the first phase is to carry
 
 RCU is a severe advantage over traditional locking mechanisms such as spinlocks as they are severely limited by worst-case memory latency. This is because once a traditional lock has been obtained it must write to the locked data-structure, this means that it must hit memory which is slow compared to cpu or cache.
 
-There is a limitation however due to the \emph{wait\_for\_rcu()} function not working in a pre-emptible kernel unless pre-emption is specifically disabled for that section.
+There is a limitation however due to the \emph{wait\_for\_rcu()} function not working in a preemptible kernel unless pre-emption is specifically disabled for that section.
 When implementing FD management with the use of RCU, Mckenney \emph{et al.} \cite{RCU} found that the kernel exhibited over 30\% more throughput for 4 cores and even with a uniprocessor there was a slight increase in performance (0.65\%).
 
-Multi-core oriented OSs such as K42 use RCU pervasively as an existence lock. It is commonly used in Linux kernels since 2.5.
+Multi-core oriented OSs such as K42 \cite{K42} use RCU pervasively as an existence lock. It is commonly used in Linux kernels since 2.5.
 
 Read-Copy-Update locking technique allows multiple threads and cores to access the same data-structures without having to attain a lock which would limit scalability. Now knowing about RCU we can explain how this was used to help increase scalability in a concurrent address space.
 
@@ -124,36 +124,74 @@ By designing fos with the above view we instantly avoid the need for a majority 
 \begin{itemize}
 \item Inherently avoids contention between application and kernel
 \item Only one thread for each core avoids locks
-\item Quicker access to servives and fully parellised as tasks are spatially-shared not time-shared
+\item Quicker access to services and fully parallelized as tasks are spatially-shared not time-shared
 \item Avoids expensive context switches
 \end{itemize}
 
 \vspace{5 mm}
 
-The system service servers execute on top of a thin microkernel inspired by designs such as Mach \cite{Mach}, however there are a few differencnes such as distribution and parallelizing within a single system service server and having a spatially aware placement engine/scheduler. The lowest level of software management comes from the microkernel.
+The system service servers execute on top of a thin microkernel inspired by designs such as Mach \cite{Mach}, however there are a few differences such as distribution and parallelizing within a single system service server and having a spatially aware placement engine/scheduler. The lowest level of software management comes from the microkernel.
 
 To describe further the relationship between fos and Internet Servers, fos even uses a cached namespace server (which provides fast lookup) and controls which messages get sent to which servers. This makes it possible for nodes to drop in and out (like the Internet) without losing important information because the name server will make sure it gets to where it needs to go and ensure at least one server takes the message. Messages are deposited into \emph{mailboxes}.
 
-A typical server is designed to process a queue of requests, perform an action and send a reply. Servers are designed to be stateless, just like a lot of Internet services. This means that these are can be transaction-oriented and therefore requires no locking to stop threads updating memory. To further help scalability, servers aquire all resourced before the transaction starts and will only yield to the next transaction (fos is a non-preemptive system).
+A typical server is designed to process a queue of requests, perform an action and send a reply. Servers are designed to be stateless, just like a lot of Internet services. This means that these are can be transaction-oriented and therefore requires no locking to stop threads updating memory. To further help scalability, servers acquire all resourced before the transaction starts and will only yield to the next transaction (fos is a non-preemptive system).
 
 Due to fos being a message passing system there is no shared memory locks between cores so immediately a major scalability issue has been resolved. There is only ever one thread executing at a time on a server and there is no preemption therefore no locks are needed. To avoid sharing hardware structures such as caches and TLBs the OS servers operate on different to cores than that of applications. The final major advantage is that different parts of the system are also spatially separated so do not implicitly interfere with shared data structures.  
 
 There are few issues with fos however and that is that it now has a large amount of core-to-core communication, however this cost is vastly less than that of shared memory (15-45 cycles compared to about 200 cycles respectively). Another issue is that replacing traditionally shared data structures such as the file systems buffer cache may not be possible and is currently unknown whether a hardware or software solution will be best. Another major question is if there are no locks being used within or between servers if a sequence of transactions can occur without some rare race conditions happening.
 
-As you can see from my \emph{brief} discussion of fos above that it offers a new and \emph{less-is-more} approach to scalability. It takes a design which we see everyday in our lives, the Internet. The server-client model has been shown to allow massively scalable approaches and this is what fos aims to acheive also. By separating the services and applications spatially across a massively multi-core processor traidtional operating techniques such as time-sharing is replaced. Fos is still in its developmental stage however but may be paving the way for future massively multi-core scalable operating systems.
-
-
-\subsection{K42}
-K42 blah
+As you can see from my \emph{brief} discussion of fos above that it offers a new and \emph{less-is-more} approach to scalability. It takes a design which we see everyday in our lives, the Internet. The server-client model has been shown to allow massively scalable approaches and this is what fos aims to achieve also. By separating the services and applications spatially across a massively multi-core processor traditional operating techniques such as time-sharing is replaced. Fos is still in its developmental stage however but may be paving the way for future massively multi-core scalable operating systems.
 
 \section{New Proposal}
 
+In The previous sections I talked briefly about different ideas for obtaining good scalability in a multi-core system. The first way looked at attempting to change the way modern operating systems are trying to 'patch' what they do now to allow further scalability such as using an RCU-friendly balanced binary tree for scalable address spaces. The second way I talked about was to completely rethink the design of operating systems and start from a new perspective where scalability comes first. 
+
+My proposal to help scalability in operating systems carries on from fos which I have discussed above. I believe that fos is the way of the future in terms of scalability and simply 'patching' modern OSs that we have today will eventually cease to provide benefits. This is why my question extends the ground work that fos has provided.
+
 \subsection{Basic Idea}
-My new idea to help improve scalability is to take a similar approach to that of \emph{fos} \cite{fos} and completely rethink the idea and design of the kernel. 
+My new idea to help improve scalability is to take a similar approach to that of \emph{fos} \cite{fos} and completely rethink the idea and design of the kernel. The client-server approach to operating systems that fos uses provides many benefits that I have discussed above. 
+
+My proposal to further help scalability is to take the current idea of fos I have briefly explained above and add an extra layer of abstraction which will help avoid costly locks on common devices which often need to be shared such as the disk or RAM. On a 64+ core system, having 4-5 cores used up for device interfaces should not cost the much in overall performance to the main task of the system, especially with the future possibly bringing us 1000+ cores on a single chip in the near future. 
+
+In fos, each core acts as its own server, it performs one tasks and sends and receives messages from other servers and applications, each operating on their own cores. However one issue which has not been resolved in fos is how locking common shared resources such as disk or RAM would be done. 
+
+I propose that devoting an entire core (or possibly several cores) to a specific resource such as RAM or disk would help alleviate locking issues. The general idea would be that for each device there is a core tasked with interfacing with it. Each core that had something to be written or read from this device would first have to go through this \emph{interface core}. Having the one core which interfaces with say the disk, would allow that core to implicitly take out a global lock on the disk. This now explicitly makes the process of reading or writing something from disk explicitly asynchronous. 
+
+For devices such as physical memory multiple cores could be given a range of addresses that it looks after and that way will shorten the queue of tasks to be written/read.
+
+In the next section I will provide some further details as well as some examples to think about.
 
 \subsection{Possible Implementation}
 
-To implement the design I have discussed above I first though to blah blah blah
+As talked about in the section above, my basic idea is to specify a core or set of cores which would be directly and solely tasked with interfacing with a particular device, RAM or the disk say. 
+
+As talked about earlier fos uses a message passing system in a transaction like manner which contains all state that is required to complete a specific task. Having a message passing and mailbox system that fos has makes using my idea relatively easy.
+
+The mailbox would act like a priority-queue (depending on the device if priority is important or not), which would contain a set of messages (or jobs) containing information to be read/written to the device. One could imagine a interface core for a disk which has two mailboxes (one for reading and one for writing) each containing many messages waiting to be written or read to disk, \emph{m$_{1}$, m$_{2}$, m$_{3}$ ... m$_{n}$}. The core would then process each message at a time (ignoring priorities for simplicity) and do what was required to the resource. If a new message \emph{m$_{n+1}$} was to come in, it would first check through the list of messages already waiting, check if what it wanted done interacted with a message already waiting (perhaps writing to the same line in a file say), it would then merge the two tasks if possible (a lot like source-control programs such as \emph{git} do) then combine the two messages into one. Given a large per-core cache these operations could be very quick saving on having to access shared memory which can be many orders of magnitude slower. 
+
+If a message which was to come along and want to read something from disk, it would first check the mailbox for writing to see if it was in the queue waiting to be written, if so it would simply grab that message and return that instead of accessing the disk.
+
+TALK ABOUT HOW IT COSTS MORE AS AN EXTRA COMMUNICATION IS NEEDED. ABOUT 10-50 cycles. STILL LESS THAN RAM LOL LOL LOL.
+
+
+TALK ABOUT DIVIDING RAM
+
+TALK ABOUT DISABLING CORES AND PERHAPS THEM WAKE UP AND SLEEP AND HAVE GRACE TIMES ETC.
+
+POSSIBLY GLOSS OVER PRIORITIES A BIT MORE / BETTER
+
+\subsubsection{Some Assumptions}
+In the above I do make several assumptions which I will now state below.
+
+The first assumption I make is that messages can be relatively quickly processed and that the queue would never grow to such a size that searching through it would be difficult or time consuming. This is generally the case with devices such as RAM which are not overly slow. For disk however, this may not prove possible. 
+
+I also assume that the per-core cache is large enough to store the messages and that the mailbox will be large enough to accommodate the number of messages required.
+
+I briefly mentioned that source-control systems such as Git use a merge algorithm to merge previous versions with newer versions, I am unsure of how this is accomplished but something similar could be used or modified to work with the needs stated above.
+
+Another assumption is that the message passing system that fos describes can accommodate what needs to be done above, my current understanding is that it could. 
+
+TALK ABOUT HOW WE ARE ASSUMING THAT THEY WONT MISS THE CORES HOWEVER THIS COULD BE APPEASED WITH SLEEPING I MENTION ABOVE.
 
 \section{Conclusion}
 The conclusion goes here.
