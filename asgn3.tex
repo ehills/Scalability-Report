@@ -100,6 +100,9 @@ Techniques like the ones I have described above can almost be seen as 'stop-gaps
 
 \emph{fos} or Factored Operating System \cite{fos}, is an operating system that has been designed with scalability at the forefront of the developers mind. Fos aims to be able to support future massively multi-core chips (1000+ cores) that are likely to be around in the next decade or so. It has done away with contemporary modern operating systems such as Linux and has instead been rethought and redesigned to work a lot like Internet servers do today.
 
+\includegraphics[width =9cm, height =8cm]{image.png}
+The image above shows an interesting result which \cite{fos} discovered. The above is a graph of the physical memory page allocator and its ability to scale. You can clearly see that the more cores that are added the less 'useful' work is really done by the page allocator and the more time it spends waiting on locks. 
+
 Fos takes its main fundamental idea from common Internet servers that are used everyday for the web. These servers are highly scalable and can deal with millions of users at a time. In a nutshell fos has a few separate and important ideas:
 
 \vspace{2 mm}
@@ -123,20 +126,22 @@ By designing fos with the above view we instantly avoid the need for a majority 
 \item Only one thread for each core avoids locks
 \item Quicker access to servives and fully parellised as tasks are spatially-shared not time-shared
 \item Avoids expensive context switches
+\end{itemize}
 
-\vspace{5mm}
+\vspace{5 mm}
 
-\includegraphics[width =8cm, height =10cm]{image.png}
 The system service servers execute on top of a thin microkernel inspired by designs such as Mach \cite{Mach}, however there are a few differencnes such as distribution and parallelizing within a single system service server and having a spatially aware placement engine/scheduler. The lowest level of software management comes from the microkernel.
 
 To describe further the relationship between fos and Internet Servers, fos even uses a cached namespace server (which provides fast lookup) and controls which messages get sent to which servers. This makes it possible for nodes to drop in and out (like the Internet) without losing important information because the name server will make sure it gets to where it needs to go and ensure at least one server takes the message. Messages are deposited into \emph{mailboxes}.
 
 A typical server is designed to process a queue of requests, perform an action and send a reply. Servers are designed to be stateless, just like a lot of Internet services. This means that these are can be transaction-oriented and therefore requires no locking to stop threads updating memory. To further help scalability, servers aquire all resourced before the transaction starts and will only yield to the next transaction (fos is a non-preemptive system).
 
-Fos as you can see above is a complicated and new idea which aims to make scalability with 1000+ cores on a single chip possible, i will briefly summarize why scalability is achievable in a system like this.
+Due to fos being a message passing system there is no shared memory locks between cores so immediately a major scalability issue has been resolved. There is only ever one thread executing at a time on a server and there is no preemption therefore no locks are needed. To avoid sharing hardware structures such as caches and TLBs the OS servers operate on different to cores than that of applications. The final major advantage is that different parts of the system are also spatially separated so do not implicitly interfere with shared data structures.  
 
+There are few issues with fos however and that is that it now has a large amount of core-to-core communication, however this cost is vastly less than that of shared memory (15-45 cycles compared to about 200 cycles respectively). Another issue is that replacing traditionally shared data structures such as the file systems buffer cache may not be possible and is currently unknown whether a hardware or software solution will be best. Another major question is if there are no locks being used within or between servers if a sequence of transactions can occur without some rare race conditions happening.
 
-\end{itemize}
+As you can see from my \emph{brief} discussion of fos above that it offers a new and \emph{less-is-more} approach to scalability. It takes a design which we see everyday in our lives, the Internet. The server-client model has been shown to allow massively scalable approaches and this is what fos aims to acheive also. By separating the services and applications spatially across a massively multi-core processor traidtional operating techniques such as time-sharing is replaced. Fos is still in its developmental stage however but may be paving the way for future massively multi-core scalable operating systems.
+
 
 \subsection{K42}
 K42 blah
@@ -146,7 +151,7 @@ K42 blah
 \subsection{Basic Idea}
 My new idea to help improve scalability is to take a similar approach to that of \emph{fos} \cite{fos} and completely rethink the idea and design of the kernel. 
 
-\subsection{Implementation}
+\subsection{Possible Implementation}
 
 To implement the design I have discussed above I first though to blah blah blah
 
