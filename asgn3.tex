@@ -1,5 +1,5 @@
 \documentclass[journal]{IEEEtran}
-
+\usepackage{graphicx}
 \begin{document}
 
 \title{Operating System and Applications Multi-Core Scalability Issues}
@@ -126,9 +126,15 @@ By designing fos with the above view we instantly avoid the need for a majority 
 
 \vspace{5mm}
 
+\includegraphics[width =8cm, height =10cm]{image.png}
 The system service servers execute on top of a thin microkernel inspired by designs such as Mach \cite{Mach}, however there are a few differencnes such as distribution and parallelizing within a single system service server and having a spatially aware placement engine/scheduler. The lowest level of software management comes from the microkernel.
 
-Fos as you can see above is a complicated and new idea which aims to make scalability with 1000+ cores on a single chip possible
+To describe further the relationship between fos and Internet Servers, fos even uses a cached namespace server (which provides fast lookup) and controls which messages get sent to which servers. This makes it possible for nodes to drop in and out (like the Internet) without losing important information because the name server will make sure it gets to where it needs to go and ensure at least one server takes the message. Messages are deposited into \emph{mailboxes}.
+
+A typical server is designed to process a queue of requests, perform an action and send a reply. Servers are designed to be stateless, just like a lot of Internet services. This means that these are can be transaction-oriented and therefore requires no locking to stop threads updating memory. To further help scalability, servers aquire all resourced before the transaction starts and will only yield to the next transaction (fos is a non-preemptive system).
+
+Fos as you can see above is a complicated and new idea which aims to make scalability with 1000+ cores on a single chip possible, i will briefly summarize why scalability is achievable in a system like this.
+
 
 \end{itemize}
 
