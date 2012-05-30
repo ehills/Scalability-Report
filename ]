@@ -47,7 +47,7 @@ Throwing more cores or processors at a problem may not be the ultimate solution 
 
 In this paper I will talk about previous papers and the techniques which have helped overcome these problems such as \emph{sloppy counters} \cite{sloppy-counters}, use of \emph{Read-Copy-Update} \cite{RCU} techniques and OSs which have done a full re-think of the kernel design with scalability in mind such as \emph{fos} \cite{fos}.
 
-After briefly talking about the different paradigms for tackling OS scalability I will then talk about a new idea which I propose will help increase scalability in a future massively multi-core operating system. My idea follows on from the general design and idea of fos which I will describe soon. My idea is to basically associate each core with a device which can help reduce contention for the resources as only one core will interact with the device and implicitly taking out a global lock on the resource.
+** talk about your idea when you have one here **
 
 \section{Related Work}
 
@@ -100,13 +100,8 @@ Techniques like the ones I have described above can almost be seen as `stop-gaps
 
 \emph{fos} or Factored Operating System \cite{fos}, is an operating system that has been designed with scalability at the forefront of the developers mind. Fos aims to be able to support future massively multi-core chips (1000+ cores) that are likely to be around in the next decade or so. It has done away with contemporary modern operating systems such as Linux and has instead been rethought and redesigned to work a lot like Internet servers do today.
 
-\begin{figure}
 \includegraphics[width =9cm, height =8cm]{image.png}
-\caption{Physical Page Allocator Scalability}
-\label{PageAllocator}
-\end{figure}
-
-The image in \emph{Fig. \ref{PageAllocator}} shows an interesting result which \cite{fos} discovered. \emph{Fig. \ref{PageAllocator}} is a graph of the physical memory page allocator and its ability to scale. You can clearly see that the more cores that are added the less `useful' work is really done by the page allocator and the more time it spends waiting on locks. 
+The image above shows an interesting result which \cite{fos} discovered. The above is a graph of the physical memory page allocator and its ability to scale. You can clearly see that the more cores that are added the less `useful' work is really done by the page allocator and the more time it spends waiting on locks. 
 
 Fos takes its main fundamental idea from common Internet servers that are used everyday for the web. These servers are highly scalable and can deal with millions of users at a time. In a nutshell fos has a few separate and important ideas:
 
@@ -172,19 +167,18 @@ As talked about in the section above, my basic idea is to specify a core or set 
 
 As talked about earlier fos uses a message passing system in a transaction like manner which contains all state that is required to complete a specific task. Having a message passing and mailbox system that fos has makes using my idea relatively easy.
 
-The mailbox would act like a priority-queue (depending on the device if priority is important or not), which would contain a set of messages (or jobs) containing information to be read/written to the device. One could imagine a interface core for a disk which has two mailboxes (one for reading and one for writing) each containing many messages waiting to be written or read to disk, \emph{m$_{1}$, m$_{2}$, m$_{3}$ ... m$_{n}$}. The core would then process each message at a time (ignoring priorities for simplicity) and do what was required to the resource. If a new message \emph{m$_{n+1}$} was to come in, it would first check through the list of messages already waiting, check if what it wanted done interacted with a message already waiting (perhaps writing to the same line in a file say), it would then merge the two tasks if possible (a lot like source-control programs such as \emph{git} do) then combine the two messages into one. Given a large per-core cache these operations could be very quick saving on having to access shared memory which can be many orders of magnitude slower. You can this in \emph{Fig. \ref{MessageToDisk}.}
+The mailbox would act like a priority-queue (depending on the device if priority is important or not), which would contain a set of messages (or jobs) containing information to be read/written to the device. One could imagine a interface core for a disk which has two mailboxes (one for reading and one for writing) each containing many messages waiting to be written or read to disk, \emph{m$_{1}$, m$_{2}$, m$_{3}$ ... m$_{n}$}. The core would then process each message at a time (ignoring priorities for simplicity) and do what was required to the resource. If a new message \emph{m$_{n+1}$} was to come in, it would first check through the list of messages already waiting, check if what it wanted done interacted with a message already waiting (perhaps writing to the same line in a file say), it would then merge the two tasks if possible (a lot like source-control programs such as \emph{git} do) then combine the two messages into one. Given a large per-core cache these operations could be very quick saving on having to access shared memory which can be many orders of magnitude slower. 
 
 If a message which was to come along and want to read something from disk, it would first check the mailbox for writing to see if it was in the queue waiting to be written, if so it would simply grab that message and return that instead of accessing the disk.
-
-\begin{figure}
-\includegraphics[height = 9cm, width=10cm]{MessagetoDisk.png}
-\caption{Logical View of Interaction to Disk Interface Where \emph{M3} Has Been Canceled Due To \emph{M4} Overriding.}
-\label{MessageToDisk}
-\end{figure}
 
 The cost as previously mentioned for inter-core communication can be about 10-50 cycles, by adding these extra layers of indirection we are increasing the latency, however as has been said also this is still faster than the time it takes to access RAM. 
 
 For devices such as RAM which can take up a large `space' and have large amounts of access we can dedicate one core to a range of addresses. We could say divide the full range of addresses and have one core for each quarter of the addresses. This is obviously an over simplification of how access to RAM works but the main principle still applies. Another point is that this would obviously be extremely slow as it is very simply and easily possible for an individual core to access and lock only the memory locations that it wishes to access, but the point still stands.
+
+\begin{figure}
+\includegraphics[height = 10cm, width=8cm]{MessagetoDisk.png}
+\caption{Awesome Image}
+\end{figure}
 
 Having all these cores accessing different devices could severely limit the computational power of the system depending on how many cores there are in total. This is why I propose it should be possible for the cores which are acting as interfaces to be able to sleep and be used as other services or applications if not needed. The idea is that the core would relinquish (or at least suspend) control of the device and start executing something else. It would however stay in the name server so that when other cores wish to access the device they would still send messages its way and then that core would resume control of the device and carry on. Depending on the device, if it was to become inactive for a certain period of time, it could go to sleep (and start processing something useful). 
 
@@ -203,15 +197,13 @@ Another assumption is that the message passing system that fos describes can acc
 
 A fairly large assumption I make earlier is that the cores that are accessing the devices wont be missed. As fos looks to the future with 100+ or 1000+ cores, having half a dozen or so cores missing would be unlikely to be missed, even in a 64 core system, they are unlikely to be missed. I do try and address this problem above however by discussing the possibility of having them `sleep' from accessing the device and instead do some other work. This would however impose a cost when they wake up to process new information after `sleeping'.
 
+TALK ABOUT HOW WE ARE ASSUMING THAT THEY WONT MISS THE CORES HOWEVER THIS COULD BE APPEASED WITH SLEEPING I MENTION ABOVE.
+
 \section{Conclusion}
-
-In this paper I have discussed two competing ideas for improving scalability, `patching' modern operating system kernels and the much more drastic path, to completely rethink and redesign the kernel with scalability as the first concern. I then proposed my idea which is an extension of fos \cite{fos} and may help improve the issue of resource contention. I suggest that only allowing one core (or perhaps set of cores depending on the resource) to access a device. By doing this, that core implicitly takes out a global lock on the device and stops any contention issues. Due to the messaging system that fos uses it is relatively simple to make possible.
-
-In the first section I talked about two techniques for improving scalability in current modern operating systems, \emph{sloppy counters} \cite{sloppy-counters} and \emph{Read-Copy-Update structures} \cite{RCU}. Both these have been widely used (RCU especially) to increase scalability in the kernel. Sloppy counters are a form of \emph{lazy counting} or \emph{distributed counters} which avoids needless communication and global counters needing locks. By replacing some explicit global counters with sloppy counters, vast improvement can be made as we avoid having to gain and lose multiple locks. RCU-friendly structures such as the \emph{Bonsai} tree can be used to have scalable concurrent address spaces and vastly improve scalability in the kernel \cite{Bonsai}.
-
-In the second section I then talked about a competing paradigm which is to completely rethink and redesign our idea of modern operating systems to inherently and explicitly avoid the need for locks unless totally necessary. Fos \cite{fos} does this by taking its initial design from Internet servers which have been seen to scale to many millions of clients. Using this system each core acts as either a server or application and uses an inherent message passing system to communicate between the two. By having the server and application operating on different cores we implicitly avoid having the need for locked code sections as each core implicitly has taken out a global lock. 
-
-I then proposed my idea which is an extension from fos in which I propose that it would be possible with the current messaging system and design of the system that each device (such as disk) has its own core which interfaces with it. When an application wish to have something written to disk it would first send the message to filesystem server which would then send the message on to the microkernel which would then in turn send the message to the core which interfaces with the disk, writes the message to the disk and returns a response message back the way it came. I believe this could be implemented fairly easily with the current design and would avoid the need for locks as all messages would be sent to the one core which would process each request sequentially and return the response asynchronously. 
+The conclusion goes here.
+The conclusion goes here.
+The conclusion goes here.
+The conclusion goes here.
 
 \bibliographystyle{abbrv}
 \bibliography{asgn3}
