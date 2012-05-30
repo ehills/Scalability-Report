@@ -2,7 +2,7 @@
 \usepackage{graphicx}
 \begin{document}
 
-\title{Operating System and Applications Multi-Core Scalability Issues}
+\title{Operating System Multi-Core Scalability Issues}
 
 \author{Edward~Hills}
 
@@ -102,7 +102,7 @@ Techniques like the ones I have described above can almost be seen as `stop-gaps
 
 \begin{figure}
 \includegraphics[width =9cm, height =8cm]{image.png}
-\caption{Physical Page Allocator Scalability}
+\caption{Scalability of Physical Page Allocator}
 \label{PageAllocator}
 \end{figure}
 
@@ -178,7 +178,7 @@ If a message which was to come along and want to read something from disk, it wo
 
 \begin{figure}
 \includegraphics[height = 9cm, width=10cm]{MessagetoDisk.png}
-\caption{Logical View of Interaction to Disk Interface Where \emph{M3} Has Been Canceled Due To \emph{M4} Overriding.}
+\caption{Logical View of Interaction from Application to Filesystem Server to Disk Interface Server Where \emph{M3} Has Been Canceled Due To \emph{M4} Writing To Same Position And Therefore \emph{M3} Is No Longer Needed.}
 \label{MessageToDisk}
 \end{figure}
 
