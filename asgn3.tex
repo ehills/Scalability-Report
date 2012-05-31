@@ -31,17 +31,17 @@ Multi-core scalability is in the fore-front of every programmers mind when progr
 
 \vspace{5mm}
 
-Coarse-grained locks are a major scalability issue in multi-core and highly threaded systems. A coarse-grained lock locks a larger area than it needs to accomplish a job that needs to be run without interference or the possibility of a race condition. Original Linux kernels have had whole kernel global locks as these were the easiest for the developers to implement, however these were quickly removed with smaller and finer-grained locks as multi-core became more apparent. Unfortunately these locks are still not fine-grained enough in todays increasingly multi-core environment.
+Coarse-grained locks are a major scalability issue in multi-core and highly threaded systems. A coarse-grained lock locks a larger area than it needs to accomplish a job that needs to be run without interference or the possibility of a race condition. Original Linux kernels have had whole kernel global locks as these were the easiest and simplest for the developers to implement, however these were quickly removed with smaller and finer-grained locks as multi-core systems became more apparent. Unfortunately these locks are still not fine-grained enough in todays increasingly multi-core environment. \cite{Berlin} 
 
 TLBs or Translation Look-aside Buffers, holds a table of physical addresses which have been mapped from virtual addresses, these are generally needed to be global so that each core gets the same data. When updating or viewing the TLB a lock must be held which stops all other processes from accessing it to avoid race-conditions and unwanted side effects. TLBs are a widely used data structure which in its generic form can severely limit scalability.
 
-Shared Memory is simply a region of memory that is shared amongst different cores (in our context), these can cause a range of scalability problems which are discussed later.
+Shared Memory is simply a region of memory that is shared amongst different cores (in our context), these can cause a range of scalability issues as well as the fact that memory access is very slow compared to that of cache.
 
 Semantic serialization is the problem in which some code blocks must be run in serial due to the nature of their task. These are some of the hardest problems to overcome as the semantics need to be rethought and designed completely to be able to semantically remove these.
 
-Having one core read what another core just wrote imposes a wide range of cache misses. If the same core that did the writing did the reading then it would be able to access the data from cache (about 10-50 cycles) and save it from accessing memory (about 100-300 cycles).
+Having one core read what another core just wrote imposes a wide range of cache misses. If the same core that did the writing did the reading then it would be able to access the data from cache (about 10-50 cycles) and save it from accessing memory (about 100-300 cycles). This is why we aim to keep similar operations on the same core.
 
-Unnecessary resource sharing often occurs as side effects of bad programming or lack of thinking about scalability. Some resources simply do not need to be shared and we will see examples of this later.
+Unnecessary resource sharing often occurs as side effects of bad programming or lack of thinking about scalability. Some resources simply do not need to be shared but due have ended up being shared anyway. An example of this is .
 
 Throwing more cores or processors at a problem may not be the ultimate solution however, as Amdahls Law \cite{Amdahl} shows. We are instead limited by the sections which must be run in serial, if a program spends 1 hour out of 20 (95\%) executing serial code then Amdahls Law states that we can only speed up computation by 20x no matter how many cores we have. This is why serial parts of a system must be carefully rethought and redesigned to be parallelized. \emph{Fig. \ref{AmdahlGraph}} shows Amdahls findings. 
 
@@ -81,11 +81,11 @@ The main idea of RCU is that when a reader process or thread comes to read a par
 
 Once the code enters a `quiescent state' (an area in the code in which you can guarantee that all previous operations have completed) then the grace period ends and the resource is reclaimed. There are several things that defines what a `quiescent state' is, some methods simply use a counter and increment every time an operation is begun and decrement it when an operation is finished, then when the counter reaches zero it has completed everything before it. For non-preemptive systems, if a context switch is performed then that could be classed as a quiescent state also. In some systems if an interrupt is called or a trap has been executed then these are also accepted.
 
-RCU in its standard implementation is mainly used for read-mostly data structures such as a routing table which is more often read than updated. One major advantage to RCU is its low-cost and low-overhead compared to normal synchronization techniques (such as a spinlock) which is relatively expensive and multi-processor unfriendly.
+RCU in its standard implementation is mainly used for read-mostly data structures such as a routing table which is more often read than updated. One major advantage to RCU is its low-cost and low-overhead compared to normal synchronization techniques (such as a spin lock) which is relatively expensive and multi-processor unfriendly.
 
 RCU is described as a `two-phase' locking mechanism, the first phase is to carry out enough of each update for new operations to see the new state, but still let old operations carry on. The second phase is to finish the update once the grace period has finished.
 
-RCU has a severe advantage over traditional locking mechanisms such as spinlocks as they are severely limited by worst-case memory latency. This is because once a traditional lock has been obtained it must write to the locked data-structure, this means that it must hit memory which is slow compared to cpu or cache.
+RCU has a severe advantage over traditional locking mechanisms such as spin locks as they are severely limited by worst-case memory latency. This is because once a traditional lock has been obtained it must write to the locked data-structure, this means that it must hit memory which is slow compared to cpu or cache.
 
 There is however a limitationdue to the \emph{wait\_for\_rcu()} function which does not work in a preemptible kernel unless preemption is specifically disabled for that section.
 
